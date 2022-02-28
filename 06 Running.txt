@@ -1,0 +1,46 @@
+-------------inputevents
+ALTER TABLE cancer.inputevents
+ALTER COLUMN starttime TYPE VARCHAR;
+select * from cancer.inputevents
+
+---------labevents
+ALTER TABLE cancer.labevents
+ALTER COLUMN charttime TYPE VARCHAR;
+select * from cancer.labevents
+
+------------microbiologyevents
+ALTER TABLE cancer.microbiologyevents
+ALTER COLUMN charttime TYPE VARCHAR;
+select * from cancer.microbiologyevents
+
+---------------------outputevents
+ALTER TABLE cancer.outputevents
+ALTER COLUMN charttime TYPE VARCHAR;
+select * from cancer.outputevents
+
+---------------procedureevents
+ALTER TABLE cancer.procedureevents
+ALTER COLUMN starttime TYPE VARCHAR;
+select * from cancer.procedureevents
+
+
+select * from mimiciv.chartevents
+select * from mimiciv.datetimeevents
+select * from mimiciv.icustays
+select * from mimiciv.inputevents
+select * from mimiciv.labevents
+select * from mimiciv.microbiologyevents
+select * from mimiciv.outputevents
+select * from mimiciv.procedureevents
+select * from mimiciv.services
+select * from mimiciv.transfers
+
+
+---------COPY albums TO '/Users/dave/Downloads/albums.csv' DELIMITER ',' CSV HEADER;------EXAMPLE FROM INTERNET
+_________YAAAY IT FINALLY WORKED, THANK GOD---------------
+
+COPY "cancer".allevents TO 'C:/MIMICIV/mimiciveventlog.csv' DELIMITER ',' CSV HEADER
+
+
+
+

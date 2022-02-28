@@ -1,0 +1,79 @@
+SELECT current_schema ();
+CREATE SCHEMA mimiciv;
+
+_____ create a transactional table from admissions----TABLE 1 
+
+
+CREATE TABLE mimiciv.admission_trans AS
+
+(SELECT DISTINCT
+ admissions.subject_id,
+ admissions.hadm_id,
+ 'admission'AS activity,
+ admissions.admittime AS charttime
+ 
+ FROM
+ admissions
+ WHERE admittime IS NOT NULL
+ 
+ UNION ALL
+ SELECT DISTINCT
+ admissions.subject_id, 
+ admissions.hadm_id, 
+  'discharge',
+ admissions.dischtime
+FROM 
+  admissions
+  WHERE dischtime IS NOT NULL
+ 
+UNION ALL
+SELECT DISTINCT
+  admissions.subject_id, 
+  admissions.hadm_id, 
+  'death',
+  admissions.deathtime
+ 
+FROM 
+ admissions
+WHERE deathtime IS NOT NULL
+ 
+UNION ALL
+SELECT DISTINCT
+  admissions.subject_id, 
+  admissions.hadm_id, 
+  'ED registration',
+  admissions.edregtime
+ FROM 
+  admissions
+  WHERE edregtime IS NOT NULL
+ 
+UNION ALL
+SELECT DISTINCT
+  admissions.subject_id, 
+  admissions.hadm_id, 
+  'ED out',
+  admissions.edouttime
+ FROM 
+  admissions
+  WHERE edouttime IS NOT NULL)
+ORDER BY subject_id, hadm_id, charttime, activity;
+
+
+----select admission records of cancer patients----- TABLE 2
+CREATE SCHEMA cancer;
+
+CREATE TABLE cancer.admissions AS
+SELECT DISTINCT
+  admission_trans.subject_id, 
+  admission_trans.hadm_id, 
+  admission_trans.activity, 
+  admission_trans.charttime
+FROM 
+  mimiciv.admission_trans, 
+  mimiciv.diagnoses_icd
+WHERE 
+  admission_trans.hadm_id = diagnoses_icd.hadm_id AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%';
+
+
+ 

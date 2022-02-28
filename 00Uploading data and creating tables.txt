@@ -1,0 +1,223 @@
+DROP TABLE IF EXISTS admissions;
+CREATE TABLE IF NOT EXISTS mimiciv.admissions
+(
+subject_id			INT,
+hadm_id				INT,
+admittime			VARCHAR,
+dischtime			VARCHAR,
+deathtime			VARCHAR,
+admission_type		VARCHAR,
+admission_location	VARCHAR,
+discharge_location	VARCHAR,
+insurance 			VARCHAR,
+language			VARCHAR,
+marital_status		VARCHAR,
+ethnicity			VARCHAR,
+edregtime			VARCHAR,
+edouttime			VARCHAR,
+hosp_expire_flag	VARCHAR
+);
+
+DROP TABLE IF EXISTS patients;
+CREATE TABLE IF NOT EXISTS mimiciv.patients
+(
+subject_id	INT,
+gender		VARCHAR,
+anchor_age	INT,
+anchor_year	INT,
+anchor_year_group	VARCHAR,
+dod			VARCHAR
+);
+
+DROP TABLE IF EXISTS transfers;
+CREATE TABLE IF NOT EXISTS mimiciv.transfers
+(
+subject_id	INT,
+hadm_id		INT,
+transfer_id	INT,
+eventtype	VARCHAR,
+careunit	VARCHAR,
+intime		VARCHAR,
+outtime		VARCHAR
+);
+
+CREATE TABLE mimiciv.diagnoses_icd
+(
+subject_id	INT,
+hadm_id		INT,
+seq_num		INT,
+icd_code	VARCHAR,
+icd_version	INT
+);
+
+CREATE TABLE mimiciv.services
+(
+subject_id		INT,
+hadm_id			INT,
+transfertime	VARCHAR,
+prev_service	VARCHAR,
+curr_service	VARCHAR
+);
+
+CREATE TABLE mimiciv.drgcodes
+(
+subject_id		INT,
+hadm_id			INT,
+drg_type		VARCHAR,
+drg_code		INT,
+description		VARCHAR,
+drg_severity	VARCHAR,
+drg_mortality	VARCHAR
+);
+
+CREATE TABLE mimiciv.d_icd_procedures
+(
+icd_code	VARCHAR,
+icd_version	INT,
+long_title	VARCHAR
+);
+
+CREATE TABLE mimiciv.d_icd_diagnoses
+(
+icd_code	VARCHAR,
+icd_version	INT,
+long_title	VARCHAR
+);
+
+CREATE TABLE mimiciv.icustays
+(
+subject_id		INT,
+hadm_id			INT,
+stay_id			INT,
+first_careunit	VARCHAR,
+lat_careunit	VARCHAR,
+intime			VARCHAR,
+outtime			VARCHAR,
+los				VARCHAR
+);
+
+CREATE TABLE mimiciv.datetimeevents
+(
+subject_id		INT,
+hadm_id			INT,
+stay_id			INT,
+charttime		VARCHAR,
+storetime		VARCHAR,
+itemid			INT,
+value			VARCHAR,
+valueuom		VARCHAR,
+warning			INT
+);
+
+ALTER TABLE mimiciv.datetimeevents
+ALTER COLUMN charttime TYPE VARCHAR;
+
+CREATE TABLE mimiciv.outputevents
+(
+subject_id		INT,
+hadm_id			INT,
+stay_id			INT,
+charttime		VARCHAR,
+storetime		VARCHAR,
+itemid			INT,
+value			VARCHAR,
+valueuom		VARCHAR
+);
+
+CREATE TABLE mimiciv.procedures_icd
+(
+subject_id		INT,
+hadm_id			INT,
+seq_num			INT,
+chartdate		DATE NOT NULL,
+icd_code		VARCHAR,
+icd_version		INT
+);
+
+ALTER TABLE mimiciv.procedures_icd
+ALTER COLUMN chartdate TYPE VARCHAR;
+	
+
+select * from mimiciv.admissions;
+select * from mimiciv.d_icd_diagnoses;
+select * from mimiciv.d_icd_procedures;
+select * from mimiciv.datetimeevents;
+select * from mimiciv.diagnoses_icd;
+select * from mimiciv.drgcodes;
+select * from mimiciv.icustays;
+select * from mimiciv.outputevents;
+select * from mimiciv.patients;
+select * from mimiciv.services;
+select * from transfers;
+select * from mimiciv.procedures_icd
+
+
+select subject_id from admissions;
+
+-- joining the tables
+
+SELECT p.gender, p.anchor_age, p.anchor_year, a.admittime, a.dischtime, a.deathtime, a.admission_type, a.admission_location, 
+a.discharge_location, t.eventtype, t.careunit, t.intime, t.outtime
+FROM patients p
+left join admissions a on p.subject_id = a.subject_id
+inner join transfers t on t.subject_id = a.subject_id
+inner join ;
+
+----- trying a new code , more filtered because the older one is taking forever to fetch data
+
+SELECT  p.anchor_age, a.admittime, a.dischtime, a.admission_type, t.careunit, t.intime, t.outtime,
+r.transfertime, r.prev_service, r.curr_service, i.first_careunit, i.lat_careunit, i.intime, i.outtime, d.icd_code, c.long_title
+FROM patients p
+join admissions a on p.subject_id = a.subject_id
+join transfers t on t.subject_id = a.subject_id
+join services r on r.subject_id = a.subject_id
+join icustays i on i.subject_id = a.subject_id
+join diagnoses_icd d on d.hadm_id = a.hadm_id
+join d_icd_diagnoses c on c.icd_code = d.icd_code;
+;
+
+----23/2/2022
+
+SELECT 
+FROM patients p
+join admissions a on p.subject_id = a.subject_id
+join transfers t on t.subject_id = a.subject_id
+join services r on r.subject_id = a.subject_id
+join icustays i on i.subject_id = a.subject_id
+join diagnoses_icd d on d.hadm_id = a.hadm_id
+join d_icd_diagnoses c on c.icd_code = d.icd_code;
+
+-------------------24/02/2022
+
+create table mimiciv.chartevents
+(
+	subject_id	INT,
+	hadm_id		INT,
+	stay_id		INT,
+	charttime	TIMESTAMP,
+	storetime	TIMESTAMP,
+	itemid	INT,
+	value	VARCHAR,
+	valuenum	VARCHAR,
+	valueuom	VARCHAR,
+	warning		VARCHAR
+);
+
+ALTER TABLE mimiciv.chartevents
+ALTER COLUMN charttime TYPE VARCHAR;
+
+select * from  mimiciv.chartevents
+select * from cancer.chartevents
+
+create table mimiciv.d_items
+(
+	itemid	int,
+	label	text,
+	abbreviation	text,
+	linksto	text,
+	category	text,
+	unitname	varchar,
+	param_type	text,
+	lownormalvalue	int not null,
+	highnormalvalue int not null
+);

@@ -1,0 +1,456 @@
+CREATE TABLE mimiciv.hcpcsevents
+(
+	subject_id 			INT,
+	hadm_id				INT,
+	chartdate			DATE,
+	hcpcs_cd			CHAR(5),
+	seq_num				INT,
+	short_description	TEXT
+);
+
+ALTER TABLE mimiciv.hcpcsevents
+ALTER COLUMN chartdate TYPE VARCHAR;
+
+SELECT * from mimiciv.hcpcsevents
+
+
+
+------- cancer patinets (cpt) events
+CREATE TABLE cancer.hcpcsevents AS
+
+SELECT DISTINCT
+  hcpcsevents.subject_id, 
+  hcpcsevents.hadm_id, 
+  hcpcsevents.short_description, 
+  hcpcsevents.chartdate
+FROM 
+  mimiciv.hcpcsevents, 
+  mimiciv.diagnoses_icd
+WHERE 
+  hcpcsevents.hadm_id = diagnoses_icd.hadm_id AND
+  hcpcsevents.chartdate IS NOT NULL AND
+  short_description IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%';
+
+
+--------2----------------------------
+CREATE TABLE mimiciv.d_items
+(
+	itemid 			INT,
+	label			VARCHAR(200),
+	abbreviation	VARCHAR(100),
+	linksto			VARCHAR(50),
+	category		VARCHAR(100),
+	unitname		VARCHAR(100),
+	param_type		VARCHAR(30),
+	lownormalvalue	FLOAT,
+	highnormalvalue FLOAT
+);
+
+SELECT * from mimiciv.hcpcsevents
+
+
+------ datetimeevents----------------
+------ can substitute caregivers with services try it out later after all the coding-----
+
+CREATE TABLE cancer.datetimeevents AS
+
+SELECT DISTINCT
+  datetimeevents.subject_id, 
+  datetimeevents.hadm_id, 
+  datetimeevents.stay_id, 
+  d_items.category AS category, 
+  d_items.label AS activity, 
+  datetimeevents.charttime  
+FROM 
+  mimiciv.datetimeevents, 
+  mimiciv.diagnoses_icd, 
+  mimiciv.d_items
+WHERE 
+  datetimeevents.hadm_id = diagnoses_icd.hadm_id AND
+  datetimeevents.itemid = d_items.itemid AND
+  d_items.label IS NOT NULL AND
+  charttime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+ORDER BY subject_id, hadm_id, stay_id, charttime, activity;
+
+-----------------------------------3-----------------------------------------------
+------------------------------------icustays---------------------------------------
+
+CREATE TABLE cancer.icustays AS
+
+(SELECT 
+  icustays.subject_id, 
+  icustays.hadm_id, 
+  icustays.stay_id, 
+  'ICU in' AS activity,
+  icustays.intime AS charttime
+FROM 
+  mimiciv.diagnoses_icd, 
+  mimiciv.icustays
+WHERE 
+  icustays.hadm_id = diagnoses_icd.hadm_id AND
+  icustays.intime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+UNION ALL
+SELECT
+  icustays.subject_id, 
+  icustays.hadm_id, 
+  icustays.stay_id, 
+  'ICU out',
+  icustays.outtime
+FROM 
+  mimiciv.diagnoses_icd, 
+  mimiciv.icustays
+WHERE 
+  icustays.hadm_id = diagnoses_icd.hadm_id AND
+  icustays.outtime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%')
+ORDER BY subject_id, hadm_id, stay_id, charttime, activity;
+
+
+--------------------------------4--------------------------------
+-------------------------inputevents_cv--------------------------
+CREATE TABLE mimiciv.inputevents
+(
+	subject_id	INT,
+	hadm_id		INT,
+ 	stay_id		INT,	
+ 	starttime	TIMESTAMP(0),
+	endtime		TIMESTAMP(0),
+	storetime	TIMESTAMP(0),
+	itemid		INT,
+	amount		DOUBLE PRECISION,
+	amountuom	VARCHAR(30),
+	rate		DOUBLE PRECISION,
+	rateuom		VARCHAR(30),
+	orderid		BIGINT,
+	linkorderid	BIGINT,	
+ 	ordercategoryname	VARCHAR(100),
+	secondaryordercategoryname	VARCHAR(100),
+	ordercomponenttypedescription	VARCHAR(200),
+	ordercategorydescription	VARCHAR(50),
+	patientweight	DOUBLE PRECISION,
+	totalamount	DOUBLE PRECISION,
+	totalamountuom	VARCHAR(50),
+	isopenbag	SMALLINT,
+	continueinnextdept	SMALLINT,
+	cancelreason	SMALLINT,
+	statusdescription	VARCHAR,
+	originalamount		DOUBLE PRECISION,
+	originalrate		DOUBLE PRECISION 
+);
+
+CREATE TABLE cancer.inputevents AS
+SELECT DISTINCT 
+  inputevents.subject_id, 
+  inputevents.hadm_id, 
+  inputevents.stay_id,
+  d_items.category, 
+  d_items.label AS activity, 
+  inputevents.starttime,
+  inputevents.endtime
+FROM 
+  mimiciv.diagnoses_icd, 
+   mimiciv.inputevents, 
+   mimiciv.d_items 
+  
+WHERE 
+  inputevents.hadm_id = diagnoses_icd.hadm_id AND
+  inputevents.itemid = d_items.itemid AND
+  d_items.label IS NOT NULL AND
+  starttime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+ORDER BY subject_id, hadm_id, starttime, activity;
+
+-----------------------------5------------------------------------------
+
+------------------labevents---------------------------------------------
+
+CREATE TABLE mimiciv.labevents
+(
+	labevent_id	INTEGER NOT NULL,
+	subject_id	INTEGER NOT NULL,
+	hadm_id		INTEGER,
+	specimen_id	INTEGER NOT NULL,
+	itemid		INTEGER NOT NULL,
+	charttime	TIMESTAMP NOT NULL,
+	storetime	TIMESTAMP,
+	value		VARCHAR(200),
+	valuenum	DOUBLE PRECISION,
+	valueuom	VARCHAR(20),
+	ref_range_lower	DOUBLE PRECISION,
+	ref_range_upper	DOUBLE PRECISION,
+	flag	VARCHAR(20),
+	priority	VARCHAR(7),
+	comments	TEXT
+);
+
+CREATE TABLE mimiciv.d_labitems
+(
+	itemid	INTEGER,
+	label	VARCHAR(50),
+	fluid	VARCHAR(50),
+	category	VARCHAR(50),
+	loinc_code	VARCHAR(50)
+);
+
+CREATE TABLE cancer.labevents AS
+SELECT 
+  labevents.subject_id, 
+  labevents.hadm_id, 
+  d_labitems.category, 
+  d_labitems.label activity, 
+  labevents.charttime
+FROM 
+  mimiciv.diagnoses_icd, 
+  mimiciv.labevents, 
+  mimiciv.d_labitems
+WHERE 
+  labevents.hadm_id = diagnoses_icd.hadm_id AND
+  labevents.itemid = d_labitems.itemid AND
+  d_labitems.label IS NOT NULL AND
+  charttime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+ORDER BY subject_id, hadm_id, charttime, activity;
+------------------------6------------------------------------------------------------------------
+-------------------microbiologyevents------------------------------------------------------------
+CREATE TABLE mimiciv.microbiologyevents
+(microevent_id	INTEGER NOT NULL,
+ subject_id		INTEGER,
+ hadm_id		INTEGER,
+ micro_specimen_id	INTEGER NOT NULL,
+ chartdate	TIMESTAMP(0) NOT NULL,
+ charttime	TIMESTAMP(0),
+ spec_itemid	INTEGER NOT NULL,
+ spec_type_desc	VARCHAR(100) NOT NULL,
+ test_seq	INTEGER NOT NULL,
+ storedate	TIMESTAMP(0),
+ storetime	TIMESTAMP(0),
+ test_itemid	INTEGER,
+ test_name	VARCHAR(100),
+ org_itemid	INTEGER,
+ org_name	VARCHAR(100),
+ isolate_num	SMALLINT,
+ quantity	VARCHAR(50),
+ ab_itemid	INTEGER,
+ ab_name	VARCHAR(30),
+ dilution_text	VARCHAR(10),
+ dilution_comparison	VARCHAR(20),
+ dilution_value	DOUBLE PRECISION,
+ interpretation	VARCHAR(5),
+ comments	TEXT
+);
+
+ALTER TABLE mimiciv.microbiologyevents
+ALTER COLUMN charttime TYPE VARCHAR;
+
+CREATE TABLE cancer.microbiologyevents AS
+SELECT 
+  microbiologyevents.subject_id, 
+  microbiologyevents.hadm_id, 
+  d_items.category, 
+  d_items.label AS activity, 
+  microbiologyevents.charttime
+FROM 
+  mimiciv.diagnoses_icd, 
+  mimiciv.d_items, 
+  mimiciv.microbiologyevents
+WHERE 
+  microbiologyevents.spec_itemid = d_items.itemid AND
+  microbiologyevents.hadm_id = diagnoses_icd.hadm_id AND
+  d_items.label IS NOT NULL AND
+  charttime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+ORDER BY subject_id, hadm_id, charttime, activity;
+
+-------------------------------7------------------------
+-----------------outputevents------------------------------------
+
+CREATE TABLE mimiciv.outputevents
+(
+	subject_id	INTEGER,
+	hadm_id		INTEGER,
+	stay_id		INTEGER,
+	charttime	TIMESTAMP,
+	storetime	TIMESTAMP,
+	itemid		INTEGER,
+	value		FLOAT,
+	valueuom	TEXT
+);
+
+ALTER TABLE mimiciv.outputevents
+ALTER COLUMN charttime TYPE VARCHAR;
+
+CREATE TABLE cancer.outputevents AS
+SELECT 
+  outputevents.subject_id, 
+  outputevents.hadm_id, 
+  outputevents.stay_id, 
+  d_items.category, 
+  d_items.label AS activity, 
+  outputevents.charttime
+ 
+FROM 
+  mimiciv.diagnoses_icd, 
+  mimiciv.d_items, 
+  mimiciv.outputevents
+
+WHERE 
+  outputevents.hadm_id = diagnoses_icd.hadm_id AND
+  outputevents.itemid = d_items.itemid AND
+  d_items.label IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+ORDER BY subject_id, hadm_id, charttime, activity;
+
+----------------------------------8------------------------------
+-----------------------prescriptions-----------------------------
+CREATE TABLE mimiciv.prescriptions
+(
+	subject_id	INTEGER NOT NULL,
+	hadm_id	INTEGER NOT NULL,
+	pharmacy_id	INTEGER,
+	starttime	TIMESTAMP,
+	stoptime	TIMESTAMP,
+	drug_type	VARCHAR(20) NOT NULL,
+	drug	VARCHAR(255) NOT NULL,
+	gsn	VARCHAR(10),
+	ndc	VARCHAR(20),
+	prod_strength	VARCHAR(255),
+	form_rx	VARCHAR(25),
+	dose_val_rx	VARCHAR(100),
+	dose_unit_rx	VARCHAR(50),
+	form_val_disp	VARCHAR(50),
+	form_unit_disp	VARCHAR(50),
+	doses_per_24_hrs	REAL,
+	route	VARCHAR(50)
+);
+	
+CREATE TABLE cancer.prescriptions AS
+SELECT 
+  prescriptions.subject_id, 
+  prescriptions.hadm_id, 
+  prescriptions.drug_type AS category, 
+  prescriptions.drug AS activity, 
+  prescriptions.starttime, 
+  prescriptions.stoptime
+FROM 
+  mimiciv.diagnoses_icd, 
+  mimiciv.prescriptions
+WHERE 
+  prescriptions.hadm_id = diagnoses_icd.hadm_id AND
+  prescriptions.drug IS NOT NULL AND
+  prescriptions.starttime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+ORDER BY subject_id, hadm_id, starttime, activity;
+
+-----------------------8--------------------------------
+-------------------procedureevents---------------------------
+
+CREATE TABLE mimiciv.procedureevents
+(
+	subject_id		Integer,
+	hadm_id			Integer,
+	stay_id			Integer,
+	starttime		timestamp,
+	endtime			timestamp,
+	storetime		timestamp,
+	itemid			Integer,
+	valueuom		Text,
+	location		VARCHAR(30),
+	locationcategory	VARCHAR(30),
+	orderid			INT,
+	linkorderid		INT,
+	ordercategoryname	VARCHAR(100),
+	secondaryordercategoryname	VARCHAR(100),
+	ordercategorydescription	VARCHAR(50),
+	patientweight	INT,
+	totalamount	INT,
+	totalamountuom	INT,
+	isopenbag	SMALLINT,
+	continueinnextdept	SMALLINT,
+	cancelreason	SMALLINT,
+	statusdescription	VARCHAR(30),
+	comments_date	TIMESTAMP(0),
+	originalamount 	INT,
+	originalrate	INT
+);
+
+CREATE TABLE cancer.procedureevents AS
+SELECT 
+  procedureevents.subject_id, 
+  procedureevents.hadm_id, 
+  procedureevents.stay_id, 
+  d_items.category, 
+  d_items.label AS activity, 
+  procedureevents.starttime, 
+  procedureevents.endtime 
+
+FROM 
+   mimiciv.diagnoses_icd, 
+   mimiciv.d_items,  
+   mimiciv.procedureevents
+WHERE 
+  procedureevents.hadm_id = diagnoses_icd.hadm_id AND
+  procedureevents.itemid = d_items.itemid AND
+  d_items.label IS NOT NULL AND
+  starttime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+ORDER BY subject_id, hadm_id, starttime, activity;
+
+-----------------------------9--------------------------------------------
+
+------------------------------services-----------------------------------
+
+CREATE TABLE cancer.services AS
+SELECT 
+  services.subject_id, 
+  services.hadm_id, 
+  'services' AS category,
+  services.curr_service AS activity, 
+  services.transfertime AS charttime
+FROM 
+   mimiciv.diagnoses_icd, 
+  mimiciv.services
+WHERE 
+  services.hadm_id = diagnoses_icd.hadm_id AND
+  services.curr_service IS NOT NULL AND
+  transfertime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+ORDER BY subject_id, hadm_id, transfertime, activity;
+
+-------------------------9----------------------------------------------------------
+----------------------------------------transfers
+CREATE TABLE cancer.transfers AS
+SELECT 
+  transfers.subject_id, 
+  transfers.hadm_id,
+  transfers.transfer_id,
+  transfers.eventtype AS category, 
+  concat('transfer into ',transfers.careunit) AS activity, 
+  transfers.intime AS charttime
+FROM
+   mimiciv.diagnoses_icd, 
+   mimiciv.transfers
+WHERE 
+  transfers.hadm_id = diagnoses_icd.hadm_id AND
+  careunit IS NOT NULL AND
+  intime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%'
+UNION ALL
+SELECT 
+  transfers.subject_id, 
+  transfers.hadm_id, 
+  transfers.transfer_id, 
+  transfers.eventtype, 
+  concat('transfer out ',transfers.careunit) AS activity, 
+  transfers.outtime
+FROM
+   mimiciv.diagnoses_icd, 
+   mimiciv.transfers
+WHERE 
+  transfers.hadm_id = diagnoses_icd.hadm_id AND
+  careunit IS NOT NULL AND
+  outtime IS NOT NULL AND
+  diagnoses_icd.icd_code BETWEEN '14%' AND '24%';
+

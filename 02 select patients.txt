@@ -1,0 +1,44 @@
+--PostgreSQL queries
+--Required: MIMIC-IV tables in mimiciv schema
+
+--select patients diagnosed with cancer (icd9_code 140-239)
+
+
+SELECT DISTINCT
+  diagnoses_icd.subject_id, 
+  diagnoses_icd.hadm_id, 
+  diagnoses_icd.seq_num, 
+  diagnoses_icd.icd_code,
+  d_icd_diagnoses.long_title
+FROM 
+  mimiciv.diagnoses_icd,
+  mimiciv.d_icd_diagnoses
+WHERE
+  subject_id IN
+  (SELECT DISTINCT subject_id FROM mimiciv.diagnoses_icd 
+  WHERE icd_code SIMILAR TO '14%|15%|16%|17%|18%|19%|20%|21%|22%|23%')
+  AND
+  diagnoses_icd.icd_code = d_icd_diagnoses.icd_code
+ORDER BY subject_id, hadm_id, seq_num;
+
+
+
+----TABLE 2-----
+
+--select procedures of cancer patients
+SELECT DISTINCT
+  procedures_icd.subject_id, 
+  procedures_icd.hadm_id, 
+  procedures_icd.seq_num, 
+  procedures_icd.icd_code,
+  d_icd_procedures.long_title
+FROM 
+  mimiciv.procedures_icd,
+  mimiciv.d_icd_procedures
+WHERE
+  subject_id IN
+  (SELECT DISTINCT subject_id FROM mimiciv.diagnoses_icd 
+  WHERE icd_code SIMILAR TO '14%|15%|16%|17%|18%|19%|20%|21%|22%|23%')
+  AND
+  procedures_icd.icd_code = d_icd_procedures.icd_code
+ORDER BY subject_id, hadm_id, seq_num;
