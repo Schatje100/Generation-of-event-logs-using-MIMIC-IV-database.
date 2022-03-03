@@ -1,0 +1,228 @@
+
+install.packages("heuristicsmineR")
+install.packages("DiagrammeR")
+install.packages("ggplot2")
+install.packages("stringr")
+install.packages("lubridate")
+install.packages("pm4py")
+install.packages("devtools")
+install.packages("processmonitR")
+
+
+remove.packages(c("ggplot2", "data.table"))
+install.packages('Rcpp', dependencies = TRUE)
+install.packages('ggplot2', dependencies = TRUE)
+install.packages('data.table', dependencies = TRUE)
+install.packages("devtools", dependencies = TRUE)
+
+
+
+library(plyr)
+library(readr)
+library(bupaR)
+library(edeaR)
+library(eventdataR)
+library(processmapR)
+library(xesreadR)
+library(petrinetR)
+library(tidyverse)
+library(dplyr)
+library(heuristicsmineR)
+library(DiagrammeR)
+library(ggplot2)
+library(stringr)
+library(lubridate)
+library(devtools)
+
+###########3use these############
+
+library(bupaR)
+library(edeaR)
+library(eventdataR)
+library(processmapR)
+library(processmonitR)
+library(heuristicsmineR)
+library(petrinetR)
+library(magrittr)
+library(pacman)
+library(DiagrammeR)
+library(tidyverse)
+
+
+
+#############cheat sheet #################
+
+mimic %>%
+  trace_explorer()
+
+
+
+
+#load mimic file ########
+
+mimic <- read.csv("C://Users/glady/OneDrive/uhasselt/Thesis/mimic iv/MIMICIVEVENTLOG/mimiciveventlog.csv", sep = ",")
+
+View(mimic)
+
+
+#################### SUMMARY() ##########################################
+
+summary(mimic)
+
+#################### DATA TYPES > OUTPUT = LIST #########################################
+
+typeof(mimic)
+
+############################### dATAFRAME ####################
+
+head(mimic)
+
+################################## DATA TRANSFORMATION #######################
+
+########################## CHANGE DATA TYPE ##################################
+ str(mimic) # show current data type
+
+mimic$charttime <-as.....(mimic$charttime)
+
+strptime() # use this to change from character to timestamp
+
+mimic$charttime <- strptime(mimic$charttime, "%m/%d/%Y",tz = "GMT") 
+
+mimic$charttime <- as.POSIXct(mimic$charttime) # seemed to work but brought an error. change from string to unambigious format
+
+
+mimic <- mimic %>% mutate(charttime = mdy_hm(charttime)) #conversion to timestamp successfully worked.
+
+
+
+
+eventlog <- bupaR::activities_to_eventlog(mimic,
+                                          case_id = 'subject_id',
+                                          activity_id = 'activity',
+                                          timestamps = c('charttime','charttime'),
+                                          resource_id = 'category'
+)
+  
+
+View(eventlog())
+
+################################### process map #############################
+
+pm <- process_map(eventlog,render = FALSE)
+
+export_graph(pm, "result.png", file_type = "png")
+
+
+########################## trace explorer###############################
+
+eventlog <- bupaR::activities_to_eventlog(mimic,
+                                          case_id = 'subject_id',
+                                          activity_id = 'activity',
+                                          timestamps = c('charttime','charttime'),
+                                          resource_id = 'category'
+) %>% trace_explorer(type = "frequent", coverage = 0.8)
+
+
+############################ ACTIVITY PRESENCE ################################# failed to work
+
+eventlog <- bupaR::activities_to_eventlog(mimic,
+                                          case_id = 'subject_id',
+                                          activity_id = 'activity',
+                                          timestamps = c('charttime','charttime'),
+                                          resource_id = 'category'
+) %>% activity_presence %>% plot
+
+############################################## CHART ########################## failed to work
+
+eventlog %>%
+  filter_trace_frequency(percentage = .7) %>%
+  process_map()
+ 
+
+
+################################## activity log ###############################
+
+eventlog %>%
+  summary()
+
+
+### artifical data ####
+
+library(eventdataR)
+mimic %>% summary()
+mimic %>% 
+  summary()
+
+
+
+
+
+
+print(process_map(mimic, type=frequency("absolute"))) ## error
+
+print(process_map(mimic, type=performance(median,"secs"))) # error no data.frame
+
+resource_map(mimic, type=frequency("absolute")) # no applicable activity id
+resource_map(mimic, type=performance(median,"secs"))
+
+event_log_life <- event_log_df %>%
+  
+########################33 CREATINGN EVENT LOG ################################
+
+mimic %>% # should be a data.frame with information 
+  
+  eventlog(
+    case_id = "hadm_id",
+    activity_id = "activity",
+    lifecycle_id = "tablename",
+    timestamp = "charttime",
+    resource_id = "category"
+  )
+
+
+##### Aggregating event data ##################### below this line nothing has worked so far ##############333
+mimic %>% 
+  process_map()
+
+mimic %>% 
+  process_matrix()
+
+
+
+library(bupaR)
+mimic %>%
+  process_map()
+
+
+class(mimic)
+str(mimic)
+
+
+
+
+
+
+
+
+
+##### process models and petri nets ##################
+
+###Heuristic Miner############### KIllian code #####3
+# Efficient precedence matrix
+m <- precedence_matrix_absolute(mimic)
+as.matrix(m)
+dependency_matrix(mimic, threshold = .7) %>% render_dependency_matrix()
+causal_net(mimic, threshold = .7) %>% render_causal_net()
+
+
+###### bupar site #####
+library(heuristicsmineR)
+library(eventdataR)
+data(mimic)
+
+#### depedency graph / matrix
+dependency_matrix(mimic)
+
+
+
+
